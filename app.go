@@ -37,6 +37,11 @@ func (a *App) startup(ctx context.Context) {
 	runtime.EventsOn(a.ctx, "update:config", func(data ...interface{}) {
 		fmt.Println("update:config", data)
 	})
+
+}
+
+func (a *App) domReady(ctx context.Context) {
+
 }
 
 // beforeClose 退出前生命周期

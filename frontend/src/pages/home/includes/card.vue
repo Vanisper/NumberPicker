@@ -1,41 +1,45 @@
 <template>
-    <div class="card" v-if="!destroy && configs?.Category">
-        <div class="left">
-            <div style="display: flex;">
-                <div class="drag-box">
+    <div class="card" style=" height: 100%; " v-if="!destroy && configs?.Category">
+        <div class="left " style=" height: 100%;">
+            <div style="display: flex; height: 100%; justify-content: space-around; ">
+                <div class="drag-box daya-same-class-box">
+                    <!--左侧分类框-->
                     <!-- 预留6个高度的位置  或者去掉具体数字  直接预留所有可能的高度 -->
                     <draggable class="list-group"
                         :style="{ 'min-height': (6 || Object.keys(configs.Category).length) * 43 + 'px' }" :list="list1"
                         :group="`Category-${uid}`" @change="onAdd1" @start="canRemove = true" @end="canRemove = false"
                         item-key="value">
                         <template #item="{ element }">
-                            <div class="list-group-item">
+                            <div class="daya-class-btn mb-0.5">
                                 {{ element.name }}
                             </div>
                         </template>
                     </draggable>
                 </div>
-                <div class="drag-box public" style="display: none;">
+                <div class="drag-box daya-same-class-box public" style="display: none;">
+                    <!--分类选择框 隐藏-->
                     <draggable class="list-group" :list="publicList"
                         :group="{ name: `Category-${uid}`, pull: 'clone', put: false }" item-key="value">
                         <template #item="{ element }">
-                            <div class="list-group-item">
+                            <div class="daya-class-btn mb-0.5">
                                 {{ element.name }}
                             </div>
                         </template>
                     </draggable>
                 </div>
-                <div class="drag-box">
+                <div class="drag-box daya-same-class-box">
+                    <!--右侧分类框-->
                     <draggable class="list-group" :list="list2" :group="`Category-${uid}`" @change="onAdd2"
                         @start="canRemove = true" @end="canRemove = false" item-key="value">
                         <template #item="{ element }">
-                            <div class="list-group-item">
+                            <div class="daya-class-btn mb-0.5">
                                 <pre>{{ element.name }}</pre>
                             </div>
                         </template>
                     </draggable>
                 </div>
             </div>
+
             <div v-if="canRemove" class="trash-box" :style="{ backgroundColor: canRemove ? '#ff000069' : '' }">
                 <draggable class="list-group" :group="`Category-${uid}`" item-key="value">
                     <template #item></template>
@@ -46,8 +50,12 @@
                 </div>
             </div>
         </div>
-        <div class="right">
+        <div class="right" style="flex:1; height: 100%;position: relative;align-items: center;">
             <span v-for="(item, index) in listIntersection" :key="index" class="ball">{{ item }}</span>
+            <div v-if="listIntersection.length == 0" style="color: #666;  height: 100%;">无相同号码</div>
+            <div :data-list="listIntersection" v-else class="daya-copy-btn cursor-pointer ml-5" @click="copyList">
+                复制
+            </div>
         </div>
     </div>
 </template>
@@ -55,6 +63,7 @@
 <script lang="ts" setup>
 import { IConfig } from "@/types/config.interface";
 import { computed, ref, watch } from "vue";
+import { copyList } from "../func"
 import draggable from "vuedraggable";
 import { v4 as uuidv4 } from 'uuid';
 // 确保不会跨组件拖拽 （停用  转为公共分类组件）
@@ -180,106 +189,78 @@ watch(() => props.configs, (value) => {
     @media (max-width: 1280px) {
         flex-direction: column;
     }
-
-    .left {
-        display: flex;
-        flex-direction: column;
-        position: relative;
-        align-items: center;
-
-        .trash-box {
-            width: calc(100% - 20px);
-            height: 100px;
-            position: absolute;
-            bottom: 10px;
-            // transform: translateY(100%);
+}
 
 
-            .list-group {
-                height: 100%;
-                overflow: auto;
 
-                .list-group-item {
-                    position: relative;
-                    display: block;
-                    padding: 0.75rem 1.25rem;
-                    background-color: var(--background-primary);
-                    border: 1px solid var(--border-secondary);
-                    cursor: move;
-
-                    &:first-child {
-                        border-top-left-radius: inherit;
-                        border-top-right-radius: inherit;
-                    }
-                }
-            }
-        }
+.left {
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    align-items: center;
+}
 
 
-        .drag-box {
-            width: 100px;
-            border: 1px solid var(--border-primary);
-            margin: 10px;
-            padding: 10px;
-            overflow: auto;
 
-            &.public {
-                background: #eee;
-            }
+.ball {
 
-            .list-group {
-                height: 100%;
+    @apply text-white font-bold rounded-full w-8 h-8 flex items-center justify-center m-1;
+    background-image: radial-gradient(circle at 12.5% 12.5%, #ffb476 0, #ffa470 16.67%, #ff8f67 33.33%, #ff745b 50%, #f05851 66.67%, #e53e4e 83.33%, #dd2550 100%);
+    box-shadow: 0px 5px 10px 0px rgb(0 0 0 / 28%);
+}
 
-                .list-group-item {
-                    position: relative;
-                    display: block;
-                    padding: 10px;
-                    background-color: var(--background-primary);
-                    border: 1px solid var(--border-secondary);
-                    cursor: move;
-                    display: flex;
-                    justify-content: center;
-                    align-items: center;
+.daya-same-class-box {
+    min-height: 100%;
+}
 
-                    &:first-child {
-                        border-top-left-radius: inherit;
-                        border-top-right-radius: inherit;
-                    }
-                }
-            }
 
-        }
-    }
+.right {
+    border: 1px solid var(--border-primary);
+    padding: 5px;
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: row;
+    justify-content: center;
+    flex-grow: 1;
+}
 
-    .right {
-        // max-width: 220px;
-        border: 1px solid var(--border-primary);
-        padding: 5px;
-        display: flex;
-        flex-wrap: wrap;
-        flex-direction: row;
-        justify-content: center;
-        flex-grow: 1;
 
-        .ball {
-            --size: 25px;
-            user-select: none;
-            display: inline-block;
-            width: var(--size);
-            height: var(--size);
-            line-height: var(--size);
-            font-size: 12px;
-            font-weight: bolder;
-            border-radius: 50%;
-            // background: #ff755b;
-            // 渐变
-            background-image: radial-gradient(circle at 12.5% 12.5%, #ffb476 0, #ffa470 16.67%, #ff8f67 33.33%, #ff745b 50%, #f05851 66.67%, #e53e4e 83.33%, #dd2550 100%);
-            // 阴影
-            box-shadow: 0px 5px 10px 0px rgb(0 0 0 / 28%);
-            color: #fff;
-            margin: 10px;
-            text-align: center;
-        }
-    }
+
+.drag-box {
+    width: 100px;
+    border: 1px solid var(--border-primary);
+    margin: 10px;
+    padding: 10px;
+    overflow: auto;
+}
+
+
+.public {
+    background: #eee;
+}
+
+.list-group {
+    height: 100%;
+}
+
+.list-group-item {
+    position: relative;
+    display: block;
+    padding: 10px;
+    background-color: var(--background-primary);
+    border: 1px solid var(--border-secondary);
+    cursor: move;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+
+
+.trash-box {
+    width: calc(100% - 20px);
+    height: 100px;
+    position: absolute;
+    bottom: 10px;
 }
 </style>

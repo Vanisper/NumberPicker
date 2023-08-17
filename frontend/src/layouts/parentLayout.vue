@@ -39,7 +39,7 @@
       style="--color-link: var(--text-link);--color-bg: var(--text-invert);height: calc(100% - 32px);">
       <a-side-bar>
         <template #extend-bottom>
-          <toggle-theme style="width: 40px; height: 40px;  margin-left: auto; margin-right: auto; margin-top: 8.75px;"
+          <toggle-theme style="width: 40px; height: 40px; margin-left: auto; margin-right: auto;margin-top: 8.75px;"
             :size="20" :duration="200" />
         </template>
       </a-side-bar>

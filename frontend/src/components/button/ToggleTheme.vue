@@ -1,6 +1,6 @@
 <template>
     <button class="theme-toggle" :class="{ 'dark': isDark }" @click="toggleTheme">
-        <svg class="sun-and-moon" aria-hidden="true" style="height: fit-content;width: fit-content;" viewBox="0 0 24 24"
+        <svg class="sun-and-moon" aria-hidden="true" style="height: fit-content;width: fit-content;display: inline-block;" viewBox="0 0 24 24"
             ref="svg">
             <mask class="moon" id="moon-mask">
                 <rect x="0" y="0" width="100%" height="100%" fill="white"></rect>
