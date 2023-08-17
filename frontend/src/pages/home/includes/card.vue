@@ -1,10 +1,13 @@
 <template>
-    <div class="card" v-if="!destroy">
+    <div class="card" v-if="!destroy && configs?.Category">
         <div class="left">
             <div style="display: flex;">
                 <div class="drag-box">
-                    <draggable class="list-group" :list="list1" :group="`Category-${uid}`" @change="onAdd1"
-                        @start="canRemove = true" @end="canRemove = false" item-key="value">
+                    <!-- 预留6个高度的位置  或者去掉具体数字  直接预留所有可能的高度 -->
+                    <draggable class="list-group"
+                        :style="{ 'min-height': (6 || Object.keys(configs.Category).length) * 43 + 'px' }" :list="list1"
+                        :group="`Category-${uid}`" @change="onAdd1" @start="canRemove = true" @end="canRemove = false"
+                        item-key="value">
                         <template #item="{ element }">
                             <div class="list-group-item">
                                 {{ element.name }}
@@ -12,7 +15,7 @@
                         </template>
                     </draggable>
                 </div>
-                <div class="drag-box public">
+                <div class="drag-box public" style="display: none;">
                     <draggable class="list-group" :list="publicList"
                         :group="{ name: `Category-${uid}`, pull: 'clone', put: false }" item-key="value">
                         <template #item="{ element }">
@@ -38,7 +41,7 @@
                     <template #item></template>
                 </draggable>
                 <div
-                    style="position: absolute;top: 50%;left: 50%;transform: translate(-50%,-50%);color: #fff;font-size: larger;font-weight: bolder;">
+                    style="position: absolute;top: 50%;left: 50%;transform: translate(-50%,-50%);color: #fff;font-size: 15px;font-weight: bolder;width: 100%;display: flex;justify-content: center;">
                     拖向此处，移除之
                 </div>
             </div>
@@ -54,8 +57,8 @@ import { IConfig } from "@/types/config.interface";
 import { computed, ref, watch } from "vue";
 import draggable from "vuedraggable";
 import { v4 as uuidv4 } from 'uuid';
-// 确保不会跨组件拖拽
-const uid = uuidv4();
+// 确保不会跨组件拖拽 （停用  转为公共分类组件）
+const uid = "uuid" || uuidv4();
 
 const props = defineProps({
     configs: {
@@ -174,9 +177,9 @@ watch(() => props.configs, (value) => {
     flex-direction: row;
     align-items: center;
 
-    // @media (max-width: 657px) {
-    //     flex-direction: column;
-    // }
+    @media (max-width: 1280px) {
+        flex-direction: column;
+    }
 
     .left {
         display: flex;
@@ -249,7 +252,7 @@ watch(() => props.configs, (value) => {
     }
 
     .right {
-        max-width: 220px;
+        // max-width: 220px;
         border: 1px solid var(--border-primary);
         padding: 5px;
         display: flex;
@@ -259,13 +262,13 @@ watch(() => props.configs, (value) => {
         flex-grow: 1;
 
         .ball {
-            --size: 32px;
+            --size: 25px;
             user-select: none;
             display: inline-block;
             width: var(--size);
             height: var(--size);
             line-height: var(--size);
-            font-size: 15px;
+            font-size: 12px;
             font-weight: bolder;
             border-radius: 50%;
             // background: #ff755b;

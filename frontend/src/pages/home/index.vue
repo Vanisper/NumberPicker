@@ -1,32 +1,44 @@
 <template>
-  <section style="display: flex;flex-wrap: nowrap;justify-content: start;overflow: auto;height: 100%;">
-    <div class="main" v-for="(_, index) in mainBox">
-      <div v-for="(_item, idx) in cards[index]" :key="idx" class="card-list">
-        <card :configs="configs" :destroy="_item.destroy" :index="index" :idx="idx"
-          @update:intersection="getUpdateIntersection" style="height:515px;" />
-        <delete-item v-if="!_item.destroy" @click="delCard(index, idx)"
-          style="position: absolute;right: 10px;top: 10px;" />
-      </div>
-      <div><add-item :text="'新增'" @click="cards[index].push({ list: [] })" style="margin:10px auto;" />
-      </div>
-      <div style="display: flex;justify-content: center;flex-wrap: wrap;max-width: 580px;">
-        <span class="ball-yellow"
-          v-for="(ball, i) in getIntersection(...cards[index].filter(v => !v.destroy && v.list.length).map(v => v.list))"
-          :key="i">{{ ball
-          }}</span>
-      </div>
-    </div>
-    <div class="main" style="max-width: 500px;">
+  <section
+    style="display: flex;flex-direction: column;flex-wrap: nowrap;justify-content: start;overflow: auto;height: 100%;">
+    <div class="public">
+      <!-- 总计 -->
       <div style="display: flex;flex-wrap: wrap;justify-content: center;margin: auto;">
         <span class="ball-blue" v-for="(ball, i) in allRes" :key="i">{{ ball
         }}</span>
       </div>
+      <!-- 公告拖拽组件 -->
+      <draggable class="list-group" :list="publicList" :group="{ name: `Category-uuid`, pull: 'clone', put: false }"
+        item-key="value">
+        <template #item="{ element }">
+          <div class="list-group-item">
+            {{ element.name }}
+          </div>
+        </template>
+      </draggable>
     </div>
-    <!-- 穿梭组件  document.querySelector("#header > div > div.header-center > div")-->
-    <Teleport to="#header > div > div.header-center > div">
+    <div style="display: flex;flex-wrap: nowrap;justify-content: start;overflow: auto;height: 100%;">
+      <div class="main" v-for="(_, index) in mainBox">
+        <div v-for="(_item, idx) in cards[index]" :key="idx" class="card-list">
+          <card :configs="configs" :destroy="_item.destroy" :index="index" :idx="idx"
+            @update:intersection="getUpdateIntersection" />
+          <delete-item class="del-btn" v-if="!_item.destroy" @click="delCard(index, idx)" />
+        </div>
+        <div><add-item :text="'新增'" @click="cards[index].push({ list: [] })" style="margin:10px auto;" />
+        </div>
+        <div style="display: flex;justify-content: center;flex-wrap: wrap;max-width: 580px;">
+          <span class="ball-yellow"
+            v-for="(ball, i) in getIntersection(...cards[index].filter(v => !v.destroy && v.list.length).map(v => v.list))"
+            :key="i">{{ ball
+            }}</span>
+        </div>
+      </div>
+    </div>
+    <!-- 穿越组件  document.querySelector("#header > div > div.header-center > div")-->
+    <!-- <Teleport to="#header > div > div.header-center > div">
       <span class="ball-blue-common" v-for="(ball, i) in allRes" :key="i">{{ ball
       }}</span>
-    </Teleport>
+    </Teleport> -->
   </section>
 </template>
 
@@ -46,8 +58,9 @@ import { computed, onMounted, ref } from "vue";
 import card from "./includes/card.vue";
 import { IConfig } from "@/types/config.interface";
 import AddItem from "@/components/button/AddItem.vue";
-// @ts-ignore
 import DeleteItem from "@/components/button/DeleteItem.vue";
+
+import draggable from "vuedraggable";
 
 const configs = ref<IConfig>();
 
@@ -58,6 +71,12 @@ const getConfig = async () => {
     console.log(err);
   })
 }
+const publicList = computed(() => Object.keys(configs.value?.Category || {}).map((key) => {
+  return {
+    name: key,
+    value: configs.value?.Category[key],
+  }
+}))
 
 onMounted(async () => {
   await getConfig();
@@ -77,7 +96,7 @@ const cards = ref<ICard[][]>(mainBox.value.map(() => {
     list: []
   }]
 }))
-
+// 多个一维数组的交集
 function getIntersection<T>(...arrays: T[][]): T[] {
   if (arrays.length === 0) {
     return [];
@@ -107,7 +126,6 @@ function getIntersection<T>(...arrays: T[][]): T[] {
   return result;
 }
 
-// @ts-ignore
 const delCard = (index: number, idx: number) => {
   // 弹窗 是否确认删除
   // window.confirm("确认删除？") && (cards.value[index][idx].destroy = true)
@@ -126,13 +144,55 @@ const allRes = computed(() => {
   return res;
 })
 </script>
+<style>
+.list-group-item {
+  position: relative;
+  display: block;
+  padding: 0.75rem 1.25rem;
+  margin: 0 10px;
+  background-color: var(--background-primary);
+  border: 1px solid var(--border-secondary);
+  cursor: move;
 
+  &:first-child {
+    border-top-left-radius: inherit;
+    border-top-right-radius: inherit;
+  }
+}
+</style>
 <style lang="less" scoped>
+.del-btn {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+
+  @media (max-width: 1280px) {
+    // 旋转90度
+    transform: rotate(-90deg);
+    top: 55px;
+    right: -38px;
+  }
+}
+
+
+.public {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 5px;
+  flex-direction: column;
+
+  .list-group {
+    display: flex;
+  }
+}
+
+
 .main {
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
-  min-width: 580px;
+  width: calc(calc((100% - 30px) / 3));
   border: 1px salmon solid;
   box-sizing: border-box;
   margin: 5px;
