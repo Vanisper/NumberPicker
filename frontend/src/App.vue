@@ -1,14 +1,10 @@
 <script setup lang="ts">
 import { onMounted } from "vue";
 import parentLayout from "./layouts/parentLayout.vue";
-import { WindowMaximise, WindowIsMinimised } from "@wailsjs/go/main/App";
+import { WindowMaximise } from "@wailsjs/runtime";
 
-onMounted(async () => {
-  if (!await WindowIsMinimised()) {
-    setTimeout(async () => {
-      await WindowMaximise();
-    });
-  }
+onMounted(() => {
+  WindowMaximise();
 });
 </script>
 
