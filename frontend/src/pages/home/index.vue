@@ -1,5 +1,9 @@
 <template>
   <section>
+    <!-- 传送组件 -->
+    <teleport :to="'#app > div > section > aside > div'">
+      <a-switch style="width: 40px;margin: auto;" type="round" v-model="showPublicBall" />
+    </teleport>
     <!--ABC共同号码区域-->
     <!-- v-if="allRes.length>0" -->
     <div class="bg-gray-600/20 rounded-3xl m-5 py-5 px-5  flex justify-start flex-wrap items-center gap-2 bg-gray-200 ">
@@ -52,8 +56,9 @@
         <!--</div>-->
 
         <div v-for="(_item, idx) in cards[index]" :key="idx" class="bg-blue-200 rounded-2xl mb-2">
-          <card :configs="configs" :destroy="_item.destroy" :index="index" :idx="idx"
-            @update:intersection="getUpdateIntersection" />
+          <card :configs="configs" :destroy="_item.destroy" :index="index" :idx="idx" :callback="getLineResule(index)"
+            :showPublicBall="showPublicBall" @update:intersection="getUpdateIntersection"
+            @remove:category="getRemoveInfo" />
           <div>
             <delete-item class="del-btn" v-if="!_item.destroy" @click="delCard(index, idx)" />
           </div>
@@ -66,18 +71,16 @@
         <div class="bg-yellow-100 rounded-2xl mt-5 py-2 ">
           <div class="flex justify-between items-center w-full px-5">
             <div class="flex-1 flex justify-start items-center flex-wrap gap-2">
-              <span class="ball-yellow"
-                v-for="(ball, i) in getIntersection(...cards[index].filter(v => !v.destroy && v.list.length).map(v => v.list))"
-                :key="i">
-                {{ ball }}
+              <span class="ball-yellow" v-for="(ball, i) in getLineResule(index)" :key="i">
+                {{ ball.value }}
               </span>
 
-              <div class="text-gray-500"
-                v-if="getIntersection(...cards[index].filter(v => !v.destroy && v.list.length).map(v => v.list)).length == 0">
+              <div class="text-gray-500" v-if="getLineResule(index).length == 0">
                 本列竖向没有相同号码
               </div>
             </div>
-            <div :data-list="getIntersection(...cards[index].filter(v => !v.destroy && v.list.length).map(v => v.list))" class="daya-copy-btn ml-5 cursor-pointer" @click="copyList">
+            <div :data-list="getLineResule(index).map(v => v.value)" class="daya-copy-btn ml-5 cursor-pointer"
+              @click="copyList">
               复制
             </div>
           </div>
@@ -101,7 +104,7 @@ export default {
 <script lang="ts" setup>
 import { ExportConfig } from "@wailsjs/go/main/App";
 import { EventsOn } from "@wailsjs/runtime";
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import card from "./includes/card.vue";
 import { IConfig } from "@/types/config.interface";
 import AddItem from "@/components/button/AddItem.vue";
@@ -137,7 +140,10 @@ onMounted(async () => {
 interface ICard {
   order?: number;
   destroy?: boolean;
-  list: number[]
+  list: {
+    public: boolean,
+    value: number
+  }[]; // 
 }
 
 const mainBox = ref(Array.from({ length: 3 }))
@@ -177,6 +183,48 @@ function getIntersection<T>(...arrays: T[][]): T[] {
   return result;
 }
 
+const showPublicBall = ref(true);
+// 统计各元素出现的次数
+function getNumCount(nums: number[]) {
+  const totalObj = nums.reduce((pre, next) => {
+    if (pre[next]) {
+      pre[next]++
+    } else {
+      pre[next] = 1
+    }
+    return pre
+  }, {} as { [k: string]: number })
+  return totalObj
+}
+// 多个一维数组返回其中出现超过2个的元素
+function moreThanN(n: number, ...arrays: number[][]): {
+  value: number; // 重复n次以上的值
+  from: number[]; // 分别来自于arrays中的哪一个
+}[] {
+  if (arrays.length === 0) {
+    return [];
+  }
+
+  const result: {
+    value: number; // 重复n次以上的值
+    from: number[]; // 分别来自于arrays中的哪一个
+  }[] = [];
+
+  const list = arrays.flatMap(v => v);
+  const Obj = getNumCount(list);
+
+  Object.keys(Obj).forEach(v => {
+    if (Obj[v] >= n) {
+      result.push({
+        value: +v,
+        from: arrays.map((array, index) => array.includes(+v) && index).filter(v => v !== false) as number[],
+      })
+    }
+  })
+
+  return result
+}
+
 const delCard = (index: number, idx: number) => {
   // 弹窗 是否确认删除
   // window.confirm("确认删除？") && (cards.value[index][idx].destroy = true)
@@ -186,13 +234,47 @@ const delCard = (index: number, idx: number) => {
 const isAllDestroy = computed(() => {
   return cards.value.map(value => value.map(v => v.destroy ? true : false)).flatMap(v => v).every(v => v)
 })
-const getUpdateIntersection = (intersection: number[], index: number, idx: number) => {
-  cards.value[index][idx].list = intersection
+const getUpdateIntersection = (intersection: { value: number, public: boolean }[], index: number, idx: number) => {
+  cards.value[index][idx].list = intersection;
 }
-const allRes = computed(() => {
-  const res = getIntersection(...cards.value.filter(v => v.length && !v.map(v => v.destroy).every(v => v)).map(v => getIntersection(...v.filter(v => !v.destroy && v.list.length).map(v => v.list))))
+const getRemoveInfo = (element: { name: string, value: number[] }, index: number, idx: number) => {
+  console.log("将更新public字段:移除了", element, index, idx);
+  const temp = getLineResule.value(index).map(v => v.value);
+  cards.value[index] = cards.value[index].map((value) => {
+    value.list = value.list.map((v) => {
+      return {
+        value: v.value,
+        public: temp.includes(v.value) ? true : false
+      }
+    })
+    return {
+      ...value,
+    }
+  })
+}
+const getLineResule = computed(() => (index: number) => {
+  return lineResule(cards.value, index)
+})
+const lineResule = (data: ICard[][], index: number) => {
+  return moreThanN(2, ...data[index].filter(v => !v.destroy && v.list.length).map(v => v.list.map(v => v.value)))
+}
+const allRes = ref<number[]>([])
+watch(cards, (value) => {
+  const data = JSON.parse(JSON.stringify(value)) as ICard[][];
+  const tRes: number[][] = []
+  data.forEach((value, index) => {
 
-  return res;
+    const temp = lineResule(data, index);
+    const remove = temp.map(v => v.value);
+    const tt = value.map(v => v.list.filter(v => !remove.includes(v.value))).flat().map(v => v.value)
+    tt.length && tRes.push(tt);
+
+  })
+
+  allRes.value = getIntersection(...tRes)
+
+}, {
+  deep: true
 })
 </script>
 

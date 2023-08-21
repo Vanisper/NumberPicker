@@ -1,7 +1,8 @@
 import { Message } from "@arco-design/web-vue";
 export const copyList = (event: MouseEvent) => {
     // 获取dom上的data-list属性 e.g. data-list="1,2,3"  逗号后面加上空格
-    const list = (event.target as HTMLElement).dataset.list?.replace(/,/g, ', ')
+    const list = (event.target as HTMLElement).dataset.list?.replace(/,/g, ', ') // 不会更新
+    // const list = (event.target as HTMLElement).getAttribute("list")?.replace(/,/g, ', ')
     navigator.clipboard.writeText(list || "").then(
         function () {
             /* clipboard successfully set */

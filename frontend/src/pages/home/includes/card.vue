@@ -41,7 +41,8 @@
             </div>
 
             <div v-if="canRemove" class="trash-box" :style="{ backgroundColor: canRemove ? '#ff000069' : '' }">
-                <draggable class="list-group" :group="`Category-${uid}`" item-key="value">
+                <draggable class="list-group" :list="trashList" :group="`Category-${uid}`" item-key="value"
+                    @change="remove">
                     <template #item></template>
                 </draggable>
                 <div
@@ -51,10 +52,22 @@
             </div>
         </div>
         <div class="right" style="flex:1; height: 100%;position: relative;align-items: center;">
-            <span v-for="(item, index) in listIntersection" :key="index" class="ball">{{ item }}</span>
+            <span v-for="(item, index) in listIntersection" :key="index" class="ball" :style="{
+                'background-image': callback.map(v => v.value).includes(item.value) ? 'radial-gradient(circle at 0% 0%, #ffef77 0, #ffde66 16.67%, #ffc950 33.33%, #f6b135 50%, #e99917 66.67%, #e08300 83.33%, #da7100 100%)' : '',
+                display: (!showPublicBall && callback.map(v => v.value).includes(item.value)) ? 'none' : ''
+            }">{{ item.value }}</span>
             <div v-if="listIntersection.length == 0" style="color: #666;  height: 100%;">无相同号码</div>
-            <div :data-list="listIntersection" v-else class="daya-copy-btn cursor-pointer ml-5" @click="copyList">
+            <div :data-list="fixListIntersection.filter(v => !v.public).map(v => v.value)" v-else
+                class="daya-copy-btn cursor-pointer ml-5" @click="copyList">
                 复制
+            </div>
+            <div style="display: flex;">
+                <div class="daya-copy-btn cursor-pointer ml-5" style="background-color: rgb(64, 219, 109);" @click="paste">
+                    粘贴
+                </div>
+                <div class="daya-copy-btn cursor-pointer ml-5" style="background-color: rgb(243, 89, 94);" @click="clean">
+                    清空
+                </div>
             </div>
         </div>
     </div>
@@ -63,6 +76,7 @@
 <script lang="ts" setup>
 import { IConfig } from "@/types/config.interface";
 import { computed, ref, watch } from "vue";
+import { Message } from "@arco-design/web-vue";
 import { copyList } from "../func"
 import draggable from "vuedraggable";
 import { v4 as uuidv4 } from 'uuid';
@@ -86,8 +100,18 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
+    callback: {
+        type: Array as () => {
+            value: number;
+            from: number[];
+        }[],
+        required: true
+    },
+    showPublicBall: {
+        type: Boolean
+    }
 })
-const enums = defineEmits(['update:intersection'])
+const enums = defineEmits(['update:intersection', 'remove:category'])
 interface IList {
     name: string;
     value: number[];
@@ -112,9 +136,29 @@ const listIntersection = computed(() => {
     const list2Value = list2.value.map((item) => item.value);
     const list1ValueFlat = Array.from(new Set(list1Value.flatMap((item) => item)));
     const list2ValueFlat = Array.from(new Set(list2Value.flatMap((item) => item)));
-    const intersection = list1ValueFlat.filter((item) => list2ValueFlat.includes(item)).sort((a, b) => a - b);
-    enums('update:intersection', intersection, props.index, props.idx)
-    return intersection;
+    const intersection = list1ValueFlat.filter((item) => list2ValueFlat.includes(item)).sort((a, b) => a - b).map(v => ({
+        value: v,
+        public: false,
+    }));
+    const res = Array.from(new Set([...intersection, ...customList.value].map(v => v.value))).sort((a, b) => a - b).map(v => ({
+        value: v,
+        public: false,
+    }))
+
+    enums('update:intersection', res, props.index, props.idx)
+    return res;
+})
+
+const fixListIntersection = computed(() => {
+    const list = listIntersection.value;
+    props.callback.map(v => v.value).forEach(v => {
+        const index = (list.map(v => v.value)).indexOf(v)
+        if (index != -1) {
+            list[index].public = true
+        }
+    })
+
+    return list
 })
 
 const onAdd1 = (_evt: any) => {
@@ -133,6 +177,7 @@ const onAdd1 = (_evt: any) => {
         }
     }
 }
+
 const onAdd2 = (_evt: any) => {
     if (list2.value?.length && list2.value.length > 1) {
         const allName = list2.value.map((item) => item.name);
@@ -148,6 +193,42 @@ const onAdd2 = (_evt: any) => {
             list2.value.splice(currentIndex, 1);
         }
     }
+}
+
+const remove = (_evt: any) => {
+    enums("remove:category", _evt.added.element, props.index, props.idx)
+    trashList.value = []
+}
+const customList = ref<{
+    public: boolean,
+    value: number
+}[]>([])
+const paste = () => {
+
+    if (navigator.clipboard) {
+        navigator.clipboard.readText()
+            .then(text => {
+                const content = Array.from(new Set(text.match(/\d+/g)));
+                if (content.length == 0) {
+                    return Message.error('剪切板并没有检测到数字')
+                }
+                Message.success('粘贴 ' + content.join(","))
+                const list = content.map(v => ({
+                    value: +v,
+                    public: false
+                }));
+                list && (customList.value = list);
+            })
+            .catch(error => console.log('获取剪贴板内容失败：', error));
+    } else {
+        console.log('当前浏览器不支持Clipboard API');
+    }
+}
+const clean = () => {
+    list1.value = [];
+    list2.value = [];
+    customList.value = [];
+    Message.success("已清空")
 }
 
 watch(() => props.configs, (value) => {
@@ -170,14 +251,7 @@ watch(() => props.configs, (value) => {
 }, {
     immediate: true,
 })
-// watch(() => props.destroy, (value) => {
-//     if (value) {
-//         list1.value = [];
-//         list2.value = [];
-//     }
-// }, {
-//     immediate: true,
-// })
+
 </script>
 
 <style lang="less" scoped>
